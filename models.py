@@ -98,21 +98,19 @@ class GenericRep(models.Model):
     district = models.ForeignKey(CongressionalDistrict, null=True)
     objects = RepManager()
     
-    @property
-    def max_stats(self):
-        value = self.stats.all().extra(select={'date': "date_trunc('day', \"better_represent_repstat\".\"stat\")"},).values('date').annotate(num_stats=Count('id')).order_by('-num_stats')[0]['num_stats']
-        return value
+    def total_stats(self, timeframe=timedelta(days=30), start=date.today()):
+        return self.repstat_set.filter().annotate(num_stats=Count('id'))
     
     def stats_by_day(self, timeframe=timedelta(days=30), start=date.today()):
         raw_days = [n for n in 
-                    self.repstat_set.filter(stat__gt=start-timeframe).annotate(num_stats=Count('stat')).order_by('-stat')]
+                    self.repstat_set.filter(stat__gt=start-timeframe).values('stat').annotate(num_stats=Count('id')).order_by('-stat')]
         data = [{'date':start-timedelta(days=n), 'num_stats':0} for n in range(timeframe.days)]
         for day in raw_days:
-            just_the_date = date(day['date'].year, day['date'].month, day['date'].day)
+            just_the_date = day['stat']
             delta = start-just_the_date
             if 0 < delta.days < timeframe.days:
                 day['date'] = just_the_date
-                data[delta.days-1] = day
+                data[delta.days-1] = {'date':day['date'], 'num_stats':day['num_stats']}
         return data
     
     class QuerySet(QuerySet):
@@ -120,11 +118,9 @@ class GenericRep(models.Model):
             return self.filter(**{'end_date__gt':date.today()})
         def old(self):
             return self.filter(**{'end_date__lt':date.today()})
-        def latest_stats_count(self, timeframe=timedelta(days=30), start=date.today()):
-            return self.annotate(Count('stats')).extra(where=["stat > '%s'" % (start-timeframe)]).order_by('-stats__count')
         def annotate_max_stats(self):
-            content_type = ContentType.objects.get(app_label="better_represent", model=self.model.__name__.lower())
-            return self.extra(select={'stats__max': 'SELECT "max_count" FROM "better_represent_repstat_max_stat" WHERE "better_represent_%s"."id"="better_represent_repstat_max_stat"."object_id" AND "better_represent_repstat_max_stat"."content_type_id"=%s' % (self.model.__name__.lower(),content_type.id)},)
+            """ put yr thinkin' hat on"""
+            return self.extra(select={'stats__max': 'select max(num_stats) as max_stats from "better_represent_repstat_max_stat" where "rep_id"="better_represent_genericrep"."id"'})
 
     class Meta:
         pass
