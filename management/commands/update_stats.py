@@ -1,5 +1,6 @@
 import os, sys
 from django.core.management.base import BaseCommand
+from django.db import connection
 from better_represent.search import NewsAggregator
 from better_represent.models import *
 LOCKFILE = "/tmp/update_stats.lock"
@@ -28,7 +29,7 @@ class Command(BaseCommand):
             if verbosity:
                 prog(prog.amount+1, 'Importing: ')
             try:
-                obj = item['extra'].repstat_set.get(stat=item['datetime'])
+                obj = item['extra'].repstat_set.get(stat=item['datetime'], hash=RepStat()._encode_hash(item['title']))
             except RepStat.DoesNotExist:
                 try:
                     obj = RepStat(stat=item['datetime'], rep=item['extra'])

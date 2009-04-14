@@ -98,8 +98,6 @@ class GenericRep(models.Model):
     district = models.ForeignKey(CongressionalDistrict, null=True)
     objects = RepManager()
     
-    def total_stats(self, timeframe=timedelta(days=30), start=date.today()):
-        return self.repstat_set.filter().annotate(num_stats=Count('id'))
     
     def stats_by_day(self, timeframe=timedelta(days=30), start=date.today()):
         raw_days = [n for n in 
@@ -118,6 +116,8 @@ class GenericRep(models.Model):
             return self.filter(**{'end_date__gt':date.today()})
         def old(self):
             return self.filter(**{'end_date__lt':date.today()})
+        def total_stats(self, timeframe=timedelta(days=30), start=date.today()):
+            return self.extra(select={'stats__count': 'select count(num_stats) from "better_represent_repstat_max_stat" where "rep_id"="better_represent_genericrep"."id" and "better_represent_repstat_max_stat"."stat" > \'%s\'' % (start-timeframe)}).order_by('-stats__count')
         def annotate_max_stats(self):
             """ put yr thinkin' hat on"""
             return self.extra(select={'stats__max': 'select max(num_stats) as max_stats from "better_represent_repstat_max_stat" where "rep_id"="better_represent_genericrep"."id"'})

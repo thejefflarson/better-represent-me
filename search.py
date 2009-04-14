@@ -1,9 +1,13 @@
-import simplejson, urllib2, urllib, sys, re, datetime
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
+import simplejson, urllib2, urllib, sys, re
+from datetime import datetime
 from itertools import *
 from operator import itemgetter
 from pprint import pprint
 from django.utils.http import urlquote_plus
 from django.utils.encoding import iri_to_uri
+from better_represent.utils.app_id import *
 
 class Query:
     def __init__(self):
@@ -60,7 +64,7 @@ class Query:
 
 
 class YahooNews(Query):
-    YAHOO_BOSS_KEY = 'zVnPO53V34F5sy4BIikbgi_9XpGxvVkbY9wFF8gZGPxbiqSQiMTJ9HMNxJSbdZa6XU2yddw-'
+    YAHOO_BOSS_KEY = get_boss_key()
     YAHOO_URL = 'http://boss.yahooapis.com/ysearch/news/v1/'
     def __init__(self):
         Query.__init__(self)
@@ -78,7 +82,7 @@ class YahooNews(Query):
             fields = ['date', 'time']
             target_field = 'datetime'
             format_string = "%Y/%m/%d %H:%M:%S"
-            mapped_item[target_field] = datetime.datetime.strptime(" ".join([item[n] for n in fields]), format_string)
+            mapped_item[target_field] = datetime.strptime(" ".join([item[n] for n in fields]), format_string)
         
         def source(self, item, mapped_item):
             mapped_item['source'] = 'yahoo'
@@ -90,7 +94,7 @@ class YahooNews(Query):
         return self.items
 
 class GoogleNews(Query):
-    GOOGLE_KEY = 'ABQIAAAAo1FSG5FcFxwjbAvjzMn_DRRgRniAqFBf4wqs5F-4EMF9zIDZ-hSFladDfAzwNrHRhpa97og8AvFcAQ'#'ABQIAAAAo1FSG5FcFxwjbAvjzMn_DRRInxyFAop1D4bJod-QUBGpemdvuRSc7oIdfPSQB3XGA4jROPwL7O5-4Q'
+    GOOGLE_KEY = get_google_key()
     GOOGLE_URL = 'http://ajax.googleapis.com/ajax/services/search/news'
     def __init__(self):
         Query.__init__(self)
@@ -114,7 +118,7 @@ class GoogleNews(Query):
             field = 'publishedDate'
             target_field = 'datetime'
             format_string = "%a, %d %b %Y %H:%M:%S"
-            mapped_item[target_field] = datetime.datetime.strptime(" ".join(item[field].split(" ")[:-1]), format_string) # forget about  timezone it's wonky
+            mapped_item[target_field] = datetime.strptime(" ".join(item[field].split(" ")[:-1]), format_string) # forget about  timezone it's wonky
         
         def source(self, item, mapped_item):
             mapped_item['source'] = 'google'
@@ -189,6 +193,15 @@ class NewsAggregator:
 
 
 if __name__ == "__main__":
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+    from django.core.management import setup_environ
+    from beckett import settings 
+    setup_environ(settings)
+    from better_represent.models import *
+    
+    
     a = NewsAggregator()
-    a.get_multiple([("Barney Frank", ["Representative"],"Barney Frank"),("Yvette Clarke", [], "Yvette Clarke")])
+    reps = [GenericRep.objects.get(first_name="Roland", last_name="Burris"), GenericRep.objects.get(first_name="Yvette", last_name="Clarke")]
+    a.get_multiple([(" ".join([n.first_name, n.last_name]), [n.get_type_display()], n) for n in reps])
     pprint(a.items)

@@ -61,27 +61,24 @@ class GenRepTest(TestCase):
         self.state = State.objects.create(state='NY', fips=1, poly=fromfile(get_file("nz.wkt")))
         self.cd = CongressionalDistrict.objects.create(state=self.state, district=1, poly=fromfile(get_file("nz.wkt")))
         self.party = Party.objects.create(name="Democrat")
-        self.rep = Representative.objects.create(member_id="000001", first_name="Barney", last_name="Frank", party=self.party,  district=self.cd, state=self.state)
-        self.stat1 = RepStat.objects.create(stat=datetime.now(), content_object=self.rep)
-        self.stat2 = RepStat.objects.create(stat=datetime.now()-timedelta(days=7), content_object=self.rep)
-        self.stat3 = RepStat.objects.create(stat=datetime.now()-timedelta(days=35), content_object=self.rep)
-        self.stat4 = RepStat.objects.create(stat=datetime.now()-timedelta(days=35)+timedelta(minutes=5), content_object=self.rep)
+        self.rep = GenericRep.objects.create(type="H", member_id="000001", first_name="Barney", last_name="Frank", party=self.party,  district=self.cd, state=self.state)
+        self.stat1 = RepStat.objects.create(stat=datetime.now(), rep=self.rep, hash='1')
+        self.stat2 = RepStat.objects.create(stat=datetime.now()-timedelta(days=7), rep=self.rep, hash='2')
+        self.stat3 = RepStat.objects.create(stat=datetime.now()-timedelta(days=35), rep=self.rep, hash='3')
+        self.stat4 = RepStat.objects.create(stat=datetime.now()-timedelta(days=35)+timedelta(minutes=5), rep=self.rep, hash='4')
 
 class RepresentativeTest(GenRepTest):
     def test_rep_current_count(self):
-        self.failUnlessEqual(Representative.objects.all().latest_stats_count(timeframe=timedelta(days=30))[0].stats__count, 2)
-        self.failUnlessEqual(sum(n['num_stats'] for n in self.rep.stats_by_day(timeframe=timedelta(days=30))), Representative.objects.all().latest_stats_count(timeframe=timedelta(days=30))[0].stats__count)
+        self.failUnlessEqual(GenericRep.objects.all().total_stats(timeframe=timedelta(days=30))[0].stats__count, 2)
+        self.failUnlessEqual(sum(n['num_stats'] for n in self.rep.stats_by_day(timeframe=timedelta(days=30))), GenericRep.objects.all().total_stats(timeframe=timedelta(days=30))[0].stats__count)
 
     def test_rep_stats_by_date_range(self):
         self.failUnlessEqual(len(self.rep.stats_by_day(timeframe=timedelta(days=30))), 30)
         self.failUnlessEqual(self.rep.stats_by_day(timeframe=timedelta(days=30), start=date.today()-timedelta(days=32))[3]['num_stats'], 0)
         self.failUnlessEqual(len(self.rep.stats_by_day(timeframe=timedelta(days=60))), 60)
 
-    def test_max_rep_stats(self):
-        self.failUnlessEqual(self.rep.max_stats, 2)
-
     def test_max_all_rep_stats(self):
-        self.failUnlessEqual(Representative.objects.all().annotate_max_stats()[0].stats__max, 2)
+        self.failUnlessEqual(GenericRep.objects.all().annotate_max_stats()[0].stats__max, 2)
 
 class GraphTest(GenRepTest):
     def test_graph(self):

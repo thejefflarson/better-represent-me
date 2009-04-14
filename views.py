@@ -43,23 +43,18 @@ def index(request):
     else:
         form = AddressForm()
 
-    senators = [{'rep':n, 'max_stats':n.max_stats} for n in Senator.objects.all().latest_stats_count().annotate_max_stats()]
-    representatives = [{'rep':n, 'max_stats':n.max_stats} for n in Representative.objects.all().latest_stats_count().annotate_max_stats()]
-    representatives.extend(senators)
-    representatives.sort(key=lambda x: r['rep'].stats__count, reverse=True)
+    representatives = GenericRep.objects.all().live().annotate_max_stats().total_stats()
+    
     return render_to_response('better_represent/index.html', {'form': form, 'popular': paginate(representatives, request)})
 
 @cache_page(0)
 def address_detail(request, address_slug=None):
     address = get_object_or_404(Address, slug=address_slug)
     state = get_object_or_404(State, poly__contains=address.point)
-    district = get_object_or_404(CongressionalDistrict, poly__contains=address.point)
-    senators = [n for n in Senator.objects.all().live().filter(state=state)]
-    representatives =[n for n in  Representative.objects.all().live().filter(district=district)]
-    representatives.extend(senators)
+    representatives = GenericRep.objects.all().live().filter(state=state)
     a = NewsAggregator()
-    a.get_multiple([(" ".join([n.first_name, n.last_name]), [n.__class__.__name__], n) for n in representatives])
-    return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'district': district, 'data':a.items})
+    a.get_multiple([(" ".join([n.first_name, n.last_name]), [n.get_type_display()], n) for n in representatives])
+    return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'data':a.items})
 
 def rep_detail(request, rep_type, rep_id):
     pass
