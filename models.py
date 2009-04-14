@@ -105,9 +105,7 @@ class GenericRep(models.Model):
     
     def stats_by_day(self, timeframe=timedelta(days=30), start=date.today()):
         raw_days = [n for n in 
-                    self.stats.filter(stat__gt=start-timeframe).extra(
-                        select={'date': "date_trunc('day', \"better_represent_repstat\".\"stat\")"}, 
-                    ).values('date').annotate(num_stats=Count('id')).order_by('-date')]
+                    self.repstat_set.filter(stat__gt=start-timeframe).annotate(num_stats=Count('stat')).order_by('-stat')]
         data = [{'date':start-timedelta(days=n), 'num_stats':0} for n in range(timeframe.days)]
         for day in raw_days:
             just_the_date = date(day['date'].year, day['date'].month, day['date'].day)
@@ -154,13 +152,18 @@ class RepStat(models.Model):
     hash = models.CharField(max_length=128)
     rep = models.ForeignKey(GenericRep)
 
+    def _encode_hash(self, title):
+        return md5(title.encode('utf-8')).hexdigest()
+
     def set_hash(self, title):
-        hash = md5(title.encode('utf-8')).hexdigest()
+        hash = self._encode_hash(title)
         self.hash = hash
 
+    def check_hash(self, title):
+        return self.hash == self._encode_hash(title)
+
     def __unicode__(self):
-        return self.stat
+        return "%s %s" % (self.stat, self.hash)
 
     class Meta:
-        unique_together=( 'stat', 'hash')
-
+        unique_together=('stat', 'hash', 'rep')
