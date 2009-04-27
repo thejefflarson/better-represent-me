@@ -9,7 +9,6 @@ def draw_graph(reps, num=3):
     list = {}
     for rep in reps[:num]:
         list[str(rep)] = rep.stats_by_day()
-        list[str(rep)].reverse()
     return {'json': "%s" % DateEncoder().encode(list) }
 
 @register.filter

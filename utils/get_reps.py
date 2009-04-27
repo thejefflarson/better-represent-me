@@ -51,7 +51,7 @@ class RepGetter:
                         for role in membership[0]['roles']:
                             m, c = CongressMembership.objects.get_or_create(congress=congress, rep=representative, title=role['title'])
                 except Exception,e:
-                    sys.stderr.write('error %s %s' % (e))
+                    sys.stderr.write('error %s' % (e))
 
 
 

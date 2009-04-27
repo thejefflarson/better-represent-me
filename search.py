@@ -168,7 +168,20 @@ class NewsAggregator:
         self.items = []
 
     def _uniquify(self, iterable, key=None):
-        self.items = [n for n in imap(lambda x: x.next(), imap(itemgetter(1), groupby(iterable, key)))]
+        #from http://docs.python.org/library/itertools.html
+        seen = set()
+        seen_add = seen.add
+        if key is None:
+            for element in iterable:
+                if element not in seen:
+                    seen_add(element)
+                    yield element
+        else:
+            for element in iterable:
+                k = key(element)
+                if k not in seen:
+                    seen_add(k)
+                    yield element
 
     def get_items(self, query, oars, extra):
         self.items.extend(self.g.get_items(query, oars, extra))
@@ -189,7 +202,7 @@ class NewsAggregator:
                 prog(prog.amount+1, 'Searching: ')
             self.get_items(*query)
         self.items.sort(cmp=lambda x, y: cmp(x['datetime'], y['datetime']), reverse=True)
-        self._uniquify(self.items, key=lambda x: x['title'])
+        self.items = [n for n in self._uniquify(self.items, key=lambda x: x['title'])]
 
 
 if __name__ == "__main__":
@@ -199,9 +212,12 @@ if __name__ == "__main__":
     from beckett import settings 
     setup_environ(settings)
     from better_represent.models import *
+    import hashlib
     
     
     a = NewsAggregator()
-    reps = [GenericRep.objects.get(first_name="Roland", last_name="Burris"), GenericRep.objects.get(first_name="Yvette", last_name="Clarke")]
+    reps = [GenericRep.objects.get(first_name="John", last_name="Kerry")]#, GenericRep.objects.get(first_name="Yvette", last_name="Clarke")]
     a.get_multiple([(" ".join([n.first_name, n.last_name]), [n.get_type_display()], n) for n in reps])
     pprint(a.items)
+    for item in a.items:
+        print hashlib.md5(item['title'].encode("utf-8")).hexdigest()

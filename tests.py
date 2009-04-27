@@ -74,7 +74,7 @@ class RepresentativeTest(GenRepTest):
 
     def test_rep_stats_by_date_range(self):
         self.failUnlessEqual(len(self.rep.stats_by_day(timeframe=timedelta(days=30))), 30)
-        self.failUnlessEqual(self.rep.stats_by_day(timeframe=timedelta(days=30), start=date.today()-timedelta(days=32))[3]['num_stats'], 0)
+        self.failUnlessEqual(self.rep.stats_by_day(timeframe=timedelta(days=30), start=date.today()-timedelta(days=30))[-6]['num_stats'], 2)
         self.failUnlessEqual(len(self.rep.stats_by_day(timeframe=timedelta(days=60))), 60)
 
     def test_max_all_rep_stats(self):
@@ -85,7 +85,6 @@ class GraphTest(GenRepTest):
         self.graph_data = draw_graph([self.rep])['json']
         from_json = json.loads(self.graph_data, encoding='utf-8', object_hook=date_decoder)[str(self.rep)]
         from_db = self.rep.stats_by_day()
-        from_json.reverse()
         i = 0
         for item in from_json:
             self.failUnlessEqual(item.values(), from_db[i].values())

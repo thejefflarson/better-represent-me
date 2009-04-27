@@ -9,7 +9,7 @@ from django.template.defaultfilters import slugify
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.db.models.query import QuerySet
-from django.db.models import Count, Max
+from django.db.models import Count, Max, Q
 from beckett.polygons.models import Zip, CongressionalDistrict, State
 from django.core.cache import cache
 # Create your models here.
@@ -99,28 +99,37 @@ class GenericRep(models.Model):
     objects = RepManager()
     
     
-    def stats_by_day(self, timeframe=timedelta(days=30), start=date.today()):
+    def stats_by_day(self, timeframe=None, start=None):
+        if isinstance(timeframe, timedelta) == False:
+            timeframe=timedelta(days=30)
+        if isinstance(start, date) == False:
+            start=date.today()
         raw_days = [n for n in 
-                    self.repstat_set.filter(stat__gt=start-timeframe).values('stat').annotate(num_stats=Count('id')).order_by('-stat')]
-        data = [{'date':start-timedelta(days=n), 'num_stats':0} for n in range(timeframe.days)]
+                    self.repstat_set.filter(Q(stat__gte=start-timeframe) & Q(stat__lte=start)).values('stat').annotate(num_stats=Count('id')).order_by('-stat')]
+        data = {}
+        for n in range(timeframe.days):
+            data[start-timedelta(days=n)] = 0
         for day in raw_days:
             just_the_date = day['stat']
-            delta = start-just_the_date
-            if 0 < delta.days < timeframe.days:
-                day['date'] = just_the_date
-                data[delta.days-1] = {'date':day['date'], 'num_stats':day['num_stats']}
-        return data
+            data[just_the_date] = day['num_stats']
+        data_zipped = [{'date':k, 'num_stats':v} for k,v in zip(data.keys(), data.values())]
+        data_zipped.sort(key=lambda x: x['date'])
+        return data_zipped
     
     class QuerySet(QuerySet):
         def live(self):
             return self.filter(**{'end_date__gt':date.today()})
         def old(self):
             return self.filter(**{'end_date__lt':date.today()})
-        def total_stats(self, timeframe=timedelta(days=30), start=date.today()):
-            return self.extra(select={'stats__count': 'select count(num_stats) from "better_represent_repstat_max_stat" where "rep_id"="better_represent_genericrep"."id" and "better_represent_repstat_max_stat"."stat" > \'%s\'' % (start-timeframe)}).order_by('-stats__count')
+        def total_stats(self, timeframe=None, start=None):
+            if isinstance(timeframe, timedelta) == False:
+                timeframe=timedelta(days=30)
+            if isinstance(start, date) == False:
+                start=date.today()
+            return self.extra(select={'stats__count': 'select coalesce(sum(num_stats), 0) from "better_represent_repstat_max_stat" where "rep_id"="better_represent_genericrep"."id" and "better_represent_repstat_max_stat"."stat" >= \'%s\'' % (start-timeframe)}).order_by('-stats__count')
         def annotate_max_stats(self):
             """ put yr thinkin' hat on"""
-            return self.extra(select={'stats__max': 'select max(num_stats) as max_stats from "better_represent_repstat_max_stat" where "rep_id"="better_represent_genericrep"."id"'})
+            return self.extra(select={'stats__max': 'select coalesce(max(num_stats),0) as max_stats from "better_represent_repstat_max_stat" where "rep_id"="better_represent_genericrep"."id"'})
 
     class Meta:
         pass

@@ -9,6 +9,7 @@ from django.http import HttpResponse, Http404, HttpResponseForbidden, HttpRespon
 from django.template.defaultfilters import slugify
 from django.conf import settings
 from django.views.decorators.cache import cache_page
+from django.db.models import Q
 
 
 def paginate(objects_list, request, num=30):
@@ -44,14 +45,14 @@ def index(request):
         form = AddressForm()
 
     representatives = GenericRep.objects.all().live().annotate_max_stats().total_stats()
-    
     return render_to_response('better_represent/index.html', {'form': form, 'popular': paginate(representatives, request)})
 
 @cache_page(0)
 def address_detail(request, address_slug=None):
     address = get_object_or_404(Address, slug=address_slug)
     state = get_object_or_404(State, poly__contains=address.point)
-    representatives = GenericRep.objects.all().live().filter(state=state)
+    cd = get_object_or_404(CongressionalDistrict, poly__contains=address.point)
+    representatives = GenericRep.objects.all().live().filter( (Q(type="H") & Q(district=cd)) | Q(type="S"), state=state)
     a = NewsAggregator()
     a.get_multiple([(" ".join([n.first_name, n.last_name]), [n.get_type_display()], n) for n in representatives])
     return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'data':a.items})
