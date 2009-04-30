@@ -11,7 +11,7 @@ from django.contrib.contenttypes import generic
 from django.db.models.query import QuerySet
 from django.db.models import Count, Max, Q
 from beckett.polygons.models import Zip, CongressionalDistrict, State
-from django.core.cache import cache
+from persistent_store.django_tokyo_persistent_store import tyrant_store
 # Create your models here.
 
 
@@ -98,6 +98,17 @@ class GenericRep(models.Model):
     district = models.ForeignKey(CongressionalDistrict, null=True)
     objects = RepManager()
     
+    @property
+    def tyrant_key(self):
+        return "rep-%s-items" % self.pk
+
+    def _set_items(self, value):
+        tyrant_store.set(self.tyrant_key, value)
+
+    def _get_items(self):
+        return tyrant_store.get(self.tyrant_key)
+    
+    items = property(_get_items, _set_items)
     
     def stats_by_day(self, timeframe=None, start=None):
         if isinstance(timeframe, timedelta) == False:

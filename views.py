@@ -53,9 +53,11 @@ def address_detail(request, address_slug=None):
     state = get_object_or_404(State, poly__contains=address.point)
     cd = get_object_or_404(CongressionalDistrict, poly__contains=address.point)
     representatives = GenericRep.objects.all().live().filter( (Q(type="H") & Q(district=cd)) | Q(type="S"), state=state)
-    a = NewsAggregator()
-    a.get_multiple([(" ".join([n.first_name, n.last_name]), [n.get_type_display()], n) for n in representatives])
-    return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'data':a.items})
+    items = []
+    for rep in representatives:
+        items.extend(rep.items)
+    items.sort(key=lambda x: x['datetime'], reverse=True)
+    return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'data':items, 'reps': representatives})
 
 def rep_detail(request, rep_type, rep_id):
     pass
