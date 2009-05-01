@@ -1,0 +1,16 @@
+{% load humanize %}
+<div id="graph"></div>
+<script type="text/javascript">
+var br_graph = new Graph("#graph", 600, 200);
+$(window).load(function () {
+    br_graph.setData({{ json|safe }});
+});
+</script>
+<ol>
+{% for entry in data %}
+<li>
+    {{ entry.datetime|naturalday:"M. d"|capfirst }} {{ pronoun }} <a href="{{ entry.extra.get_absolute_url }}">{{ entry.extra }}</a> {{ entry.verb }} <a href="{{entry.url}}">{{entry.title|safe}}</a> at <a href="{{entry.homepage}}">{{entry.org}}</a>
+</li>
+{% endfor %}
+</ol>
+

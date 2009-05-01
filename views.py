@@ -4,6 +4,7 @@ from better_represent.search import NewsAggregator
 from polygons.models import *
 from better_represent.forms import *
 from django.core.paginator import Paginator
+from django.template import RequestContext
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseForbidden, HttpResponseRedirect 
 from django.template.defaultfilters import slugify
@@ -11,6 +12,7 @@ from django.conf import settings
 from django.views.decorators.cache import cache_page
 from django.db.models import Q
 
+### utils ###
 
 def paginate(objects_list, request, num=30):
     paginator = Paginator(objects_list, num) # Show 25 contacts per page
@@ -23,6 +25,7 @@ def paginate(objects_list, request, num=30):
     except (EmptyPage, InvalidPage):
         return paginator.page(paginator.num_pages)
 
+### actual views ###
 def index(request):
     if request.method == 'POST':
         form = AddressForm(request.POST)
@@ -45,19 +48,20 @@ def index(request):
         form = AddressForm()
 
     representatives = GenericRep.objects.all().live().annotate_max_stats().total_stats()
-    return render_to_response('better_represent/index.html', {'form': form, 'popular': paginate(representatives, request)})
+    paged = paginate(representatives, request)
+    return render_to_response('better_represent/index.html', {'form': form, 'popular': paged, 'reps': paged.object_list}, context_instance=RequestContext(request))
 
 @cache_page(0)
 def address_detail(request, address_slug=None):
     address = get_object_or_404(Address, slug=address_slug)
     state = get_object_or_404(State, poly__contains=address.point)
     cd = get_object_or_404(CongressionalDistrict, poly__contains=address.point)
-    representatives = GenericRep.objects.all().live().filter( (Q(type="H") & Q(district=cd)) | Q(type="S"), state=state)
-    items = []
-    for rep in representatives:
-        items.extend(rep.items)
-    items.sort(key=lambda x: x['datetime'], reverse=True)
-    return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'data':items, 'reps': representatives})
+    representatives = GenericRep.objects.all().live().filter( (Q(type="H") & Q(district=cd)) | Q(type="S"), state=state).annotate_max_stats().total_stats()
+    return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'reps': representatives }, context_instance=RequestContext(request))
 
-def rep_detail(request, rep_type, rep_id):
-    pass
+def rep_detail(request, rep_id=None, first_name=None, last_name=None):
+        reps = GenericRep.objects.all().live().annotate_max_stats().total_stats().filter(pk=rep_id, first_name=first_name, last_name=last_name)
+        if reps:
+            return render_to_response('better_represent/rep_detail.html', {'reps': reps, 'form': AddressForm()}, context_instance=RequestContext(request))
+        else:
+            raise Http404

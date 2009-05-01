@@ -144,6 +144,10 @@ class GenericRep(models.Model):
 
     class Meta:
         pass
+    
+    @models.permalink
+    def get_absolute_url(self):
+        return ('rep_detail', (), {'rep_id':self.pk, 'first_name': self.first_name, 'last_name': self.last_name})
 
     def __unicode__(self):
         return "%s %s %s" % ( self.get_type_display(), self.first_name, self.last_name)

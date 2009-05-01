@@ -1,0 +1,7 @@
+{% extends "better_represent/base_represent.html" %}
+{% load humanize %}
+{% load graph_extras %}
+{% block extra_content_top %}
+{{ address.address }}
+{{ state.name }}
+{% endblock %}
