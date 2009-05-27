@@ -49,9 +49,11 @@ def index(request):
 
     representatives = GenericRep.objects.all().live().annotate_max_stats().total_stats()
     paged = paginate(representatives, request)
-    return render_to_response('better_represent/index.html', {'form': form, 'popular': paged, 'reps': paged.object_list}, context_instance=RequestContext(request))
+    return render_to_response('better_represent/index.html', {'form': form, 
+                                                              'popular': paged, 
+                                                              'reps': paged.object_list}, 
+                                                               context_instance=RequestContext(request))
 
-@cache_page(0)
 def address_detail(request, address_slug=None):
     address = get_object_or_404(Address, slug=address_slug)
     state = get_object_or_404(State, poly__contains=address.point)
@@ -59,8 +61,8 @@ def address_detail(request, address_slug=None):
     representatives = GenericRep.objects.all().live().filter( (Q(type="H") & Q(district=cd)) | Q(type="S"), state=state).annotate_max_stats().total_stats()
     return render_to_response('better_represent/address_detail.html', {'address': address, 'state': state, 'reps': representatives }, context_instance=RequestContext(request))
 
-def rep_detail(request, rep_id=None, first_name=None, last_name=None):
-        reps = GenericRep.objects.all().live().annotate_max_stats().total_stats().filter(pk=rep_id, first_name=first_name, last_name=last_name)
+def rep_detail(request, rep_id=None, slug=None):
+        reps = GenericRep.objects.all().live().annotate_max_stats().total_stats().filter(pk=rep_id, slug=slug)
         if reps:
             return render_to_response('better_represent/rep_detail.html', {'reps': reps, 'form': AddressForm()}, context_instance=RequestContext(request))
         else:

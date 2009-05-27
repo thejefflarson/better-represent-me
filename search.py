@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, unicodedata
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 import simplejson, urllib2, urllib, sys, re
 from datetime import datetime
@@ -6,7 +6,7 @@ from itertools import *
 from operator import itemgetter
 from pprint import pprint
 from django.utils.http import urlquote_plus
-from django.utils.encoding import iri_to_uri
+from django.utils.encoding import iri_to_uri, smart_str
 from better_represent.utils.app_id import *
 
 class Query:
@@ -125,8 +125,11 @@ class GoogleNews(Query):
 
 
     def get_items(self, query, oars, extra):
-        query = '%s %s' %( " ".join(oars), query)
-        self.args['q'] = iri_to_uri(urlquote_plus(query))
+        query = '%s+"%s"' %( " ".join(oars), query)
+        try:
+            self.args['q'] = unicodedata.normalize('NFKD', query).encode('ascii', 'ignore') # iri_to_uri(urlquote_plus(query))
+        except UnicodeEncodeError:
+            self.args['q'] = iri_to_uri(urlquote_plus(query))
         url = self.GOOGLE_URL + "?" + urllib.urlencode(self.args)
         self._query(url, extra)
         return self.items
@@ -216,7 +219,7 @@ if __name__ == "__main__":
     
     
     a = NewsAggregator()
-    reps = [GenericRep.objects.get(first_name="John", last_name="Kerry")]#, GenericRep.objects.get(first_name="Yvette", last_name="Clarke")]
+    reps = [GenericRep.objects.get(last_name="Serrano")]#, GenericRep.objects.get(first_name="Yvette", last_name="Clarke")]
     a.get_multiple([(" ".join([n.first_name, n.last_name]), [n.get_type_display()], n) for n in reps])
     pprint(a.items)
     for item in a.items:

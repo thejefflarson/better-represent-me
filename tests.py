@@ -82,10 +82,7 @@ class RepresentativeTest(GenRepTest):
 
 class GraphTest(GenRepTest):
     def test_graph(self):
-        self.graph_data = draw_graph([self.rep])['json']
+        self.graph_data = draw_graph(self.rep)['json']
         from_json = json.loads(self.graph_data, encoding='utf-8', object_hook=date_decoder)[str(self.rep)]
         from_db = self.rep.stats_by_day()
-        i = 0
-        for item in from_json:
-            self.failUnlessEqual(item.values(), from_db[i].values())
-            i += 1
+        self.failUnlessEqual(from_json, from_db)

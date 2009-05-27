@@ -54,7 +54,7 @@ class Address(models.Model):
                                                                             "/web/geocode_db/geocoder.db", 
                                                                             self.address], 
                                                                             stdout=subprocess.PIPE).communicate())
-        super(Address, self).save(force_insert, force_update)
+        return super(Address, self).save(force_insert, force_update)
 
     @models.permalink
     def get_absolute_url(self):
@@ -96,7 +96,13 @@ class GenericRep(models.Model):
     end_date = models.DateField(null=True)
     congresses = models.ManyToManyField(Congress, through='CongressMembership')
     district = models.ForeignKey(CongressionalDistrict, null=True)
+    slug = models.SlugField(max_length=50)
     objects = RepManager()
+    
+    def save(self, force_insert=False, force_update=False):
+        self.slug = slugify("-".join([self.first_name, self.last_name]))
+        return super(GenericRep, self).save(force_insert, force_update)
+        
     
     @property
     def tyrant_key(self):
@@ -123,7 +129,7 @@ class GenericRep(models.Model):
         for day in raw_days:
             just_the_date = day['stat']
             data[just_the_date] = day['num_stats']
-        data_zipped = [{'date':k, 'num_stats':v} for k,v in zip(data.keys(), data.values())]
+        data_zipped = [{'date': k, 'num_stats':v} for k,v in zip(data.keys(), data.values())]
         data_zipped.sort(key=lambda x: x['date'])
         return data_zipped
     
@@ -147,7 +153,7 @@ class GenericRep(models.Model):
     
     @models.permalink
     def get_absolute_url(self):
-        return ('rep_detail', (), {'rep_id':self.pk, 'first_name': self.first_name, 'last_name': self.last_name})
+        return ('rep_detail', (), {'rep_id':self.pk, 'slug': self.slug})
 
     def __unicode__(self):
         return "%s %s %s" % ( self.get_type_display(), self.first_name, self.last_name)

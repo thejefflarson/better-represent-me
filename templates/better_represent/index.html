@@ -5,11 +5,9 @@
                 {% if popular.has_previous %}
                     <a href="?page={{ popular.previous_page_number }}">previous</a>
                 {% endif %}
-
                 <span class="current">
-                    Page <b>{{ popular.number }}</b> of <b>{{ popular.paginator.num_pages }}</b>.
+                   Page <b>{{ popular.number }}</b> of <b>{{ popular.paginator.num_pages }}</b>.
                 </span>
-
                 {% if popular.has_next %}
                     <a href="?page={{ popular.next_page_number }}">next</a>
                 {% endif %}

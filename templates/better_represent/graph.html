@@ -1,16 +1,27 @@
 {% load humanize %}
-<div id="graph"></div>
+<div id="graph" class="grid_16"></div>
 <script type="text/javascript">
-var br_graph = new Graph("#graph", 600, 200);
+var br_graph = new Graph("#graph", 900, 200);
 $(window).load(function () {
     br_graph.setData({{ json|safe }});
 });
 </script>
-<ol>
-{% for entry in data %}
-<li>
-    {{ entry.datetime|naturalday:"M. d"|capfirst }} {{ pronoun }} <a href="{{ entry.extra.get_absolute_url }}">{{ entry.extra }}</a> {{ entry.verb }} <a href="{{entry.url}}">{{entry.title|safe}}</a> at <a href="{{entry.homepage}}">{{entry.org}}</a>
-</li>
+<div class="grid_11">
+{% regroup data by datetime|naturalday:"M. d"|capfirst as data_by_date %}
+{% for date in data_by_date %}
+<dl class="dates grid_11 alpha">
+    <dt class="grid_1 alpha">
+        {{ date.grouper|naturalday:"M. d"|capfirst }} 
+    </dt>
+    <dd class="grid_10 omega">
+        <ol class="news_items">
+    {% for entry in date.list %}
+            <li>
+            {{ entry.pronoun }} <a href="{{ entry.extra.get_absolute_url }}">{{ entry.extra }}</a> {{ entry.verb }} <a href="{{entry.url}}">{{entry.title|safe}}</a> at <a href="{{entry.homepage}}">{{entry.org}}</a>
+            </li>
+    {% endfor %}
+        </ol>
+    </dd>
+</dl>
 {% endfor %}
-</ol>
-
+</div>
