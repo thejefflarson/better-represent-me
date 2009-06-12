@@ -36,7 +36,7 @@
                     <span class="total {{rep.party.name}}">{{ rep.stats__count }} <small>stor{{ rep.stats__count|pluralize:"y,ies"}}</small></span> 
                 </dt>
                 <dd class="rep">
-                   <a href="{{ rep.get_absolute_url }}">{{ rep }}</a>
+                   <a href="{{ rep.get_absolute_url }}" class="{{ rep|slugify }}">{{ rep }}</a>
                 </dd>
 
                 <dd>
