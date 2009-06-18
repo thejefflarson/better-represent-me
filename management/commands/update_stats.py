@@ -41,3 +41,7 @@ class Command(BaseCommand):
                     except Exception, e:
                         if verbosity:
                             print "error %s" % e.message
+                rep.set_daily_items(item, day=item['datetime'].date())
+                
+
+

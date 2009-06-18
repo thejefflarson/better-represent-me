@@ -1,70 +1,7 @@
 {% load humanize %}
 <div id="graph" class="grid_16"></div>
-<style type="text/css">
-    .timeline { 
-      font-size: 0.75em; 
-      height: 10em; 
-    }
-    .timeline li { 
-      position: relative;
-      float: left;
-      width: 2em; 
-      margin: 0 1px;
-      height: 8em; 
-    }
-    .inner-timeline li{
-        position: absolute;
-        left: 0;
-        bottom: 0;
-    }
-    .timeline li em { 
-      display: block;
-      height: 100%;  
-    }
-    .timeline li .label { 
-      display: block; 
-      position: absolute; 
-      bottom: -2em; 
-      left: 0; 
-      background: #fff; 
-      width: 100%; 
-      height: 2em; 
-      line-height: 2em; 
-      text-align: center;
-    }
-    .inner-timeline li em .count { 
-      display: block; 
-      position: absolute; 
-      bottom: 0; 
-      left: 0; 
-      height: 0; 
-      width: 100%; 
-      background: #AAA; 
-      text-indent: -9999px; 
-      overflow: hidden; 
-      
-    }
-</style>
-<ol class="timeline">
-{% regroup by_day by date as stats_by_day %}
-{% for stat in stats_by_day %}
-    <li>
-        {% for r in stat.list %}
-                <ol class="inner-timeline">
-                    <li>
-                        <em>
-                            <span class="count {{ r.rep|slugify }}-solid" style="height: {% widthratio r.num_stats max 8 %}em; z-index: -{{r.num_stats}}">{{r.num_stats}}</span>
-                        </em>
-                    </li>
-                </ol>
-        {% endfor %}
-        <span class="label">{{stat.grouper|naturalday:"d"|capfirst}}</span>
-    </li>
-
-{% endfor %}
-</ol>
 <script type="text/javascript">
-var br_graph = new Graph("#graph", 900, 200);
+var br_graph = new Graph("#graph", 600, 150);
 $(window).load(function () {
     br_graph.setData({{ json|safe }});
 });

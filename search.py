@@ -170,7 +170,7 @@ class NewsAggregator:
         self.y = YahooNews()
         self.items = []
 
-    def _uniquify(self, iterable, key=None):
+    def uniquify(self, iterable, key=None):
         #from http://docs.python.org/library/itertools.html
         seen = set()
         seen_add = seen.add
@@ -185,6 +185,10 @@ class NewsAggregator:
                 if k not in seen:
                     seen_add(k)
                     yield element
+
+    def sort(self, items):
+        items.sort(cmp=lambda x, y: cmp(x['datetime'], y['datetime']), reverse=True)
+            
 
     def get_items(self, query, oars, extra):
         self.items.extend(self.g.get_items(query, oars, extra))
@@ -204,8 +208,8 @@ class NewsAggregator:
             if VERBOSE:
                 prog(prog.amount+1, 'Searching: ')
             self.get_items(*query)
-        self.items.sort(cmp=lambda x, y: cmp(x['datetime'], y['datetime']), reverse=True)
-        self.items = [n for n in self._uniquify(self.items, key=lambda x: x['title'])]
+        self.sort(self.items)
+        self.items = [n for n in self.uniquify(self.items, key=lambda x: x['title'])]
 
 
 if __name__ == "__main__":

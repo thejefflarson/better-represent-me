@@ -108,14 +108,56 @@ class GenericRep(models.Model):
     def tyrant_key(self):
         return "rep-%s-items" % self.pk
 
+    @property
+    def tyrant_dates_key(self):
+        return "rep-%s-dates" % self.pk
+
+
+    def tyrant_daily_key(self, date):
+        return "%s-%s" % (self.tyrant_key, 
+                            date.strftime("%Y%m%d"))
+                                 
+
     def _set_items(self, value):
         tyrant_store.set(self.tyrant_key, value)
 
     def _get_items(self):
         return tyrant_store.get(self.tyrant_key)
-    
     items = property(_get_items, _set_items)
+
+    def _set_tyrant_dates(self, value):
+        return tyrant_store.set(self.tyrant_dates_key, value)
     
+    def _get_tyrant_dates(self):
+        return tyrant_store.get(self.tyrant_dates_key)
+    tyrant_dates = property(_get_tyrant_dates, _set_tyrant_dates)
+
+    def get_daily_items(self, day):
+        if isinstance(day, date) == False:
+            day = date.today()
+        return tyrant_store.get(self.tyrant_daily_key(day)) or None 
+
+    def set_daily_items(self, value, day):
+        from better_represent.search import NewsAggregator
+        a = NewsAggregator()
+        curr_items = self.get_daily_items(day)
+        try:
+            curr_items.append(value)
+            a.sort(curr_items)
+        except AttributeError:
+            curr_items = [value]
+        items = [n for n in a.uniquify(curr_items, key=lambda x: x['title'])]
+        tyrant_store.set(self.tyrant_daily_key(day), items)
+        
+        curr_dates = self.tyrant_dates
+        try:
+            curr_dates.append(self.tyrant_daily_key(day))
+            curr_dates.sort()
+        except AttributeError:
+            curr_dates = [self.tyrant_daily_key(day)]
+        self.tyrant_dates = [n for n in a.uniquify(curr_dates)]  
+
+   
     def stats_by_day(self, timeframe=None, start=None):
         if isinstance(timeframe, timedelta) == False:
             timeframe=timedelta(days=30)
